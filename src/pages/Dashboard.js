@@ -1,25 +1,46 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import Documents from '../components/Documents';
 import Stats from '../components/Stats';
 import TestQuestion from '../components/TestQuestion';
+import ActivityLog from '../components/ActivityLog';
+import AdminUsers from '../components/AdminUsers';
+import ScripturesManager from '../components/ScripturesManager';
 
 const TABS = [
-  { id: 'Documents', icon: '📄', label: 'Documents' },
-  { id: 'Test',      icon: '🧪', label: 'Test Question' },
-  { id: 'Stats',     icon: '📊', label: 'Stats' },
+  { id: 'Documents',   icon: '📄', label: 'Documents'   },
+  { id: 'Test',        icon: '🧪', label: 'Test'         },
+  { id: 'Scriptures',  icon: '📖', label: 'Scriptures'  },
+  { id: 'Users',       icon: '👤', label: 'Users'        },
+  { id: 'Activity',    icon: '📋', label: 'Activity'     },
+  { id: 'Stats',       icon: '📊', label: 'Stats'        },
 ];
+
+const PAGE_SUBTITLES = {
+  Documents:  'Manage knowledge base documents and ingestion',
+  Test:       'Test questions directly against the API',
+  Scriptures: 'Manage scriptures, storytellers and Pinecone namespaces',
+  Users:      'Manage admin user accounts',
+  Activity:   'Recent admin actions and ingestion history',
+  Stats:      'Monitor Pinecone index and API health',
+};
 
 export default function Dashboard() {
   const [activeTab, setActiveTab] = useState('Documents');
+  const [theme,     setTheme]     = useState(() => localStorage.getItem('sutradhar_theme') || 'dark');
   const navigate = useNavigate();
+
+  useEffect(() => {
+    document.documentElement.setAttribute('data-theme', theme);
+    localStorage.setItem('sutradhar_theme', theme);
+  }, [theme]);
+
+  const toggleTheme = () => setTheme(t => t === 'dark' ? 'light' : 'dark');
 
   const handleLogout = () => {
     localStorage.removeItem('sutradhar_token');
     navigate('/login');
   };
-
-  const activeTabObj = TABS.find(t => t.id === activeTab);
 
   return (
     <div style={styles.layout}>
@@ -42,6 +63,9 @@ export default function Dashboard() {
           ))}
         </nav>
         <div style={styles.sidebarBottom}>
+          <button className="btn btn-ghost" onClick={toggleTheme} style={{ width: '100%', justifyContent: 'center', marginBottom: 8 }}>
+            {theme === 'dark' ? '☀️ Light Mode' : '🌙 Dark Mode'}
+          </button>
           <button className="btn btn-ghost" onClick={handleLogout} style={{ width: '100%', justifyContent: 'center' }}>
             Sign Out
           </button>
@@ -51,18 +75,17 @@ export default function Dashboard() {
       <main style={styles.main}>
         <header style={styles.header}>
           <div>
-            <h2 style={styles.pageTitle}>{activeTabObj?.icon} {activeTab}</h2>
-            <p style={styles.pageSubtitle}>
-              {activeTab === 'Documents'  && 'Manage knowledge base documents and ingestion'}
-              {activeTab === 'Test'       && 'Test questions directly against the API'}
-              {activeTab === 'Stats'      && 'Monitor Pinecone index and API health'}
-            </p>
+            <h2 style={styles.pageTitle}>{TABS.find(t => t.id === activeTab)?.icon} {activeTab}</h2>
+            <p style={styles.pageSubtitle}>{PAGE_SUBTITLES[activeTab]}</p>
           </div>
         </header>
         <div style={styles.content} className="fade-in">
-          {activeTab === 'Documents' && <Documents />}
-          {activeTab === 'Test'      && <TestQuestion />}
-          {activeTab === 'Stats'     && <Stats />}
+          {activeTab === 'Documents'  && <Documents />}
+          {activeTab === 'Test'       && <TestQuestion />}
+          {activeTab === 'Scriptures' && <ScripturesManager />}
+          {activeTab === 'Users'      && <AdminUsers />}
+          {activeTab === 'Activity'   && <ActivityLog />}
+          {activeTab === 'Stats'      && <Stats />}
         </div>
       </main>
     </div>
@@ -84,7 +107,7 @@ const styles = {
   sidebarBottom: { marginTop: 'auto', paddingTop: 16 },
   main:          { marginLeft: 220, flex: 1, display: 'flex', flexDirection: 'column' },
   header:        { padding: '28px 36px 20px', borderBottom: '1px solid var(--border)', background: 'var(--bg-secondary)' },
-  pageTitle:     { fontSize: 26, fontFamily: 'Cormorant Garant, serif' },
+  pageTitle:     { fontSize: 26, fontFamily: 'Cormorant Garant, serif', color: 'var(--text-primary)' },
   pageSubtitle:  { color: 'var(--text-secondary)', fontSize: 13, marginTop: 2 },
   content:       { padding: '32px 36px', flex: 1 },
 };

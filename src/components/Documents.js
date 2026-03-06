@@ -76,6 +76,26 @@ export default function Documents() {
     fetchDocs();
   };
 
+  // ── CSV Export ───────────────────────────────────────────────────────────────
+  const handleExportCSV = async () => {
+    try {
+      const res = await documentsAPI.export(filterScripture || null);
+      const rows = res.data.documents;
+      const headers = ['id','source','scripture','kanda','topic','doc_type','chunk_count','added_at'];
+      const csv = [
+        headers.join(','),
+        ...rows.map(r => headers.map(h => `"${(r[h] || '').toString().replace(/"/g,'""')}"`).join(','))
+      ].join('\n');
+      const blob = new Blob([csv], { type: 'text/csv' });
+      const url  = URL.createObjectURL(blob);
+      const a    = document.createElement('a');
+      a.href = url; a.download = `sutradhar-documents-${new Date().toISOString().slice(0,10)}.csv`;
+      a.click(); URL.revokeObjectURL(url);
+    } catch (e) {
+      setError('Export failed');
+    }
+  };
+
   // ── Upload with progress polling ───────────────────────────────────────────
   const handleUpload = async (e) => {
     e.preventDefault();
@@ -249,6 +269,7 @@ export default function Documents() {
         <div style={{ display: 'flex', gap: 8 }}>
           <button className="btn btn-ghost" onClick={() => setActiveForm(activeForm === 'url' ? null : 'url')}>🔗 Ingest URL</button>
           <button className="btn btn-primary" onClick={() => setActiveForm(activeForm === 'file' ? null : 'file')}>↑ Upload File</button>
+          <button className="btn btn-ghost" onClick={() => { const base = process.env.REACT_APP_API_URL || 'http://localhost:8080'; const token = localStorage.getItem('sutradhar_token'); const url = `${base}/documents/export${filterScripture ? '?scripture=' + filterScripture : ''}`; fetch(url, { headers: { Authorization: 'Bearer ' + token } }).then(r => r.blob()).then(b => { const a = document.createElement('a'); a.href = URL.createObjectURL(b); a.download = 'sutradhar_documents.csv'; a.click(); }); }}>⬇ Export CSV</button>
         </div>
       </div>
 
