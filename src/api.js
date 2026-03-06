@@ -4,14 +4,12 @@ const API_URL = process.env.REACT_APP_API_URL || 'http://localhost:8080';
 
 const api = axios.create({ baseURL: API_URL });
 
-// Attach JWT token to every request
 api.interceptors.request.use(config => {
   const token = localStorage.getItem('sutradhar_token');
   if (token) config.headers.Authorization = `Bearer ${token}`;
   return config;
 });
 
-// Redirect to login on 401
 api.interceptors.response.use(
   res => res,
   err => {
@@ -24,17 +22,17 @@ api.interceptors.response.use(
 );
 
 export const authAPI = {
-  login: (username, password) =>
-    api.post('/auth/login', { username, password }),
+  login: (username, password) => api.post('/auth/login', { username, password }),
 };
 
 export const documentsAPI = {
-  list:      (scripture) => api.get('/documents', { params: scripture ? { scripture } : {} }),
-  upload:    (formData)  => api.post('/documents/upload', formData, {
-    headers: { 'Content-Type': 'multipart/form-data' }
-  }),
-  ingestURL: (data)      => api.post('/documents/ingest-url', data),
-  delete:    (id)        => api.delete(`/documents/${id}`),
+  list:      (scripture, search, page = 1, pageSize = 10) =>
+    api.get('/documents', { params: { ...(scripture ? { scripture } : {}), ...(search ? { search } : {}), page, page_size: pageSize } }),
+  upload:    (formData) => api.post('/documents/upload', formData, { headers: { 'Content-Type': 'multipart/form-data' } }),
+  ingestURL: (data)     => api.post('/documents/ingest-url', data),
+  delete:    (id)       => api.delete(`/documents/${id}`),
+  update:    (id, data) => api.patch(`/documents/${id}`, data),
+  getJob:    (jobId)    => api.get(`/documents/jobs/${jobId}`),
 };
 
 export const adminAPI = {
