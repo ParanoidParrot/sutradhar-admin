@@ -83,19 +83,15 @@ export default function Documents() {
     setUploading(true);
     setError('');
     setJobStatus({ status: 'pending', progress: 0, message: 'Starting...' });
-    try {
-      const fd = new FormData();
-      fd.append('file',      file);
-      fd.append('scripture', uploadForm.scripture);
-      fd.append('source',    uploadForm.source || file.name);
-      fd.append('kanda',     uploadForm.kanda);
-      fd.append('topic',     uploadForm.topic);
-      const res = await documentsAPI.upload(fd);
-      setJobId(res.data.job_id);
-      // Start polling
+
+    const CHUNK_SIZE = 5 * 1024 * 1024; // 5MB per chunk
+    const totalChunks = Math.ceil(file.size / CHUNK_SIZE);
+    const useChunked = file.size > CHUNK_SIZE;
+
+    const startPolling = (jobId, filename) => {
       jobPollRef.current = setInterval(async () => {
         try {
-          const jobRes = await documentsAPI.getJob(res.data.job_id);
+          const jobRes = await documentsAPI.getJob(jobId);
           setJobStatus(jobRes.data);
           if (jobRes.data.status === 'done') {
             clearInterval(jobPollRef.current);
@@ -105,7 +101,7 @@ export default function Documents() {
             setUploadForm({ scripture: 'ramayana', source: '', kanda: '', topic: '' });
             setJobStatus(null);
             setJobId(null);
-            showSuccess(`✓ Ingested "${res.data.filename}" — ${jobRes.data.chunk_count} chunks`);
+            showSuccess(`✓ Ingested "${filename}" — ${jobRes.data.chunk_count} chunks`);
             fetchDocs();
           } else if (jobRes.data.status === 'error') {
             clearInterval(jobPollRef.current);
@@ -113,8 +109,53 @@ export default function Documents() {
             setJobStatus(null);
             setError(`Ingestion failed: ${jobRes.data.message}`);
           }
-        } catch (e) { clearInterval(jobPollRef.current); setUploading(false); }
+        } catch (err) { clearInterval(jobPollRef.current); setUploading(false); }
       }, 1500);
+    };
+
+    try {
+      if (!useChunked) {
+        // ── Small file: single-shot upload ──────────────────────────────────
+        const fd = new FormData();
+        fd.append('file',      file);
+        fd.append('scripture', uploadForm.scripture);
+        fd.append('source',    uploadForm.source || file.name);
+        fd.append('kanda',     uploadForm.kanda);
+        fd.append('topic',     uploadForm.topic);
+        const res = await documentsAPI.upload(fd);
+        setJobId(res.data.job_id);
+        startPolling(res.data.job_id, res.data.filename);
+      } else {
+        // ── Large file: chunked upload ───────────────────────────────────────
+        // Step 1: initialise session
+        const initFd = new FormData();
+        initFd.append('filename',     file.name);
+        initFd.append('total_chunks', totalChunks);
+        initFd.append('scripture',    uploadForm.scripture);
+        initFd.append('source',       uploadForm.source || file.name);
+        initFd.append('kanda',        uploadForm.kanda);
+        initFd.append('topic',        uploadForm.topic);
+        const initRes = await documentsAPI.uploadInit(initFd);
+        const { upload_id, job_id } = initRes.data;
+        setJobId(job_id);
+
+        // Step 2: send chunks sequentially
+        for (let i = 0; i < totalChunks; i++) {
+          const start = i * CHUNK_SIZE;
+          const blob  = file.slice(start, start + CHUNK_SIZE);
+          const chunkFd = new FormData();
+          chunkFd.append('upload_id',   upload_id);
+          chunkFd.append('chunk_index', i);
+          chunkFd.append('chunk',       blob, file.name);
+          await documentsAPI.uploadChunk(chunkFd);
+        }
+
+        // Step 3: finalise — kicks off ingestion
+        const finFd = new FormData();
+        finFd.append('upload_id', upload_id);
+        await documentsAPI.uploadFinalise(finFd);
+        startPolling(job_id, file.name);
+      }
     } catch (e) {
       setUploading(false);
       setJobStatus(null);

@@ -26,14 +26,19 @@ export const authAPI = {
 };
 
 export const documentsAPI = {
-  list:      (scripture, search, page = 1, pageSize = 10) =>
+  list:           (scripture, search, page = 1, pageSize = 10) =>
     api.get('/documents', { params: { ...(scripture ? { scripture } : {}), ...(search ? { search } : {}), page, page_size: pageSize } }),
-  export:    (scripture) => api.get('/documents/export', { params: scripture ? { scripture } : {} }),
-  upload:    (formData)  => api.post('/documents/upload', formData, { headers: { 'Content-Type': 'multipart/form-data' } }),
-  ingestURL: (data)      => api.post('/documents/ingest-url', data),
-  delete:    (id)        => api.delete(`/documents/${id}`),
-  update:    (id, data)  => api.patch(`/documents/${id}`, data),
-  getJob:    (jobId)     => api.get(`/documents/jobs/${jobId}`),
+  export:         (scripture) => api.get('/documents/export', { params: scripture ? { scripture } : {} }),
+  // Single-shot upload (files ≤ 5MB)
+  upload:         (formData)  => api.post('/documents/upload', formData, { headers: { 'Content-Type': 'multipart/form-data' } }),
+  // Chunked upload (files > 5MB) — three-step process
+  uploadInit:     (formData)  => api.post('/documents/upload-init',     formData, { headers: { 'Content-Type': 'multipart/form-data' } }),
+  uploadChunk:    (formData)  => api.post('/documents/upload-chunk',    formData, { headers: { 'Content-Type': 'multipart/form-data' } }),
+  uploadFinalise: (formData)  => api.post('/documents/upload-finalise', formData, { headers: { 'Content-Type': 'multipart/form-data' } }),
+  ingestURL:      (data)      => api.post('/documents/ingest-url', data),
+  delete:         (id)        => api.delete(`/documents/${id}`),
+  update:         (id, data)  => api.patch(`/documents/${id}`, data),
+  getJob:         (jobId)     => api.get(`/documents/jobs/${jobId}`),
 };
 
 export const adminAPI = {
