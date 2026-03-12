@@ -5,7 +5,7 @@ const API_URL = process.env.REACT_APP_API_URL || 'http://localhost:8080';
 
 export default function TestQuestion() {
   const [question,  setQuestion]  = useState('');
-  const [scripture, setScripture] = useState('ramayana');
+  const [scripture]               = useState('ramayana');
   const [language,  setLanguage]  = useState('English');
   const [loading,   setLoading]   = useState(false);
   const [result,    setResult]    = useState(null);

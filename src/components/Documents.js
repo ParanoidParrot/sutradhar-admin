@@ -16,7 +16,7 @@ export default function Documents() {
   const [totalPages,  setTotalPages]  = useState(1);
   const [total,       setTotal]       = useState(0);
   const [deleting,    setDeleting]    = useState(null);
-  const [confirmDelete, setConfirmDelete] = useState(null); // doc to confirm delete
+  const [confirmDelete, setConfirmDelete] = useState(null);
   const [editingDoc,  setEditingDoc]  = useState(null);
   const [editForm,    setEditForm]    = useState({});
   const [savingEdit,  setSavingEdit]  = useState(false);
@@ -25,7 +25,7 @@ export default function Documents() {
   const [file,       setFile]       = useState(null);
   const [uploading,  setUploading]  = useState(false);
   const [uploadForm, setUploadForm] = useState({ scripture: 'ramayana', source: '', kanda: '', topic: '' });
-  const [jobId,      setJobId]      = useState(null);
+  const [, setJobId]                = useState(null);
   const [jobStatus,  setJobStatus]  = useState(null);
   const jobPollRef = useRef(null);
 
@@ -39,9 +39,9 @@ export default function Documents() {
     fetchDocs();
     fetchScriptures();
     return () => { if (jobPollRef.current) clearInterval(jobPollRef.current); };
-  }, []);
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
-  useEffect(() => { fetchDocs(); }, [page, filterScripture]);
+  useEffect(() => { fetchDocs(); }, [page, filterScripture]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const fetchDocs = async () => {
     setLoading(true);
@@ -74,26 +74,6 @@ export default function Documents() {
     e.preventDefault();
     setPage(1);
     fetchDocs();
-  };
-
-  // ── CSV Export ───────────────────────────────────────────────────────────────
-  const handleExportCSV = async () => {
-    try {
-      const res = await documentsAPI.export(filterScripture || null);
-      const rows = res.data.documents;
-      const headers = ['id','source','scripture','kanda','topic','doc_type','chunk_count','added_at'];
-      const csv = [
-        headers.join(','),
-        ...rows.map(r => headers.map(h => `"${(r[h] || '').toString().replace(/"/g,'""')}"`).join(','))
-      ].join('\n');
-      const blob = new Blob([csv], { type: 'text/csv' });
-      const url  = URL.createObjectURL(blob);
-      const a    = document.createElement('a');
-      a.href = url; a.download = `sutradhar-documents-${new Date().toISOString().slice(0,10)}.csv`;
-      a.click(); URL.revokeObjectURL(url);
-    } catch (e) {
-      setError('Export failed');
-    }
   };
 
   // ── Upload with progress polling ───────────────────────────────────────────
