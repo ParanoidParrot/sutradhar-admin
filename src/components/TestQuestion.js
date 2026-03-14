@@ -74,7 +74,7 @@ export default function TestQuestion() {
               {result.passages.map((p, i) => (
                 <div key={i} style={styles.passage}>
                   <div style={styles.passageMeta}>
-                    <span className="tag tag-gold">{p.kanda || 'Unknown Kanda'}</span>
+                    <span className="tag tag-gold">{p.kanda || p.source || 'Ramayana'}</span>
                     <span className="mono" style={{ color: 'var(--text-muted)', fontSize: 11 }}>score: {p.score}</span>
                   </div>
                   <p style={styles.passageText}>{p.text}</p>
